@@ -5,10 +5,12 @@ import shutil
 from typing import List, Optional
 import urllib
 
+import websockets
 import nltk
 import pydantic
 import uvicorn
 from fastapi import Body, FastAPI, File, Form, Query, UploadFile, WebSocket
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing_extensions import Annotated
@@ -408,6 +410,46 @@ async def stream_chat(websocket: WebSocket, knowledge_base_id: str):
 async def document():
     return RedirectResponse(url="/docs")
 
+async def hello():
+    async with websockets.connect("ws://localhost:7861") as websocket:
+        recv_text = await websocket.send_json()
+
+async def fake_streamer(question: str, history: List[List[str]]):
+    vs_path = os.path.join("./vector_store/", "data")
+    last_print_len = 0
+    import configs
+    for resp, history in local_doc_qa.get_knowledge_based_answer(
+        query=question, vs_path=vs_path, chat_history=history, streaming=True
+    ):
+        yield resp["result"][last_print_len:]
+        last_print_len = len(resp["result"])
+    # source_documents = [
+    #         f"""出处 [{inum + 1}] {os.path.split(doc.metadata['source'])[-1]}：\n\n{doc.page_content}\n\n"""
+    #         f"""相关度：{doc.metadata['score']}\n\n"""
+    #         for inum, doc in enumerate(resp["source_documents"])
+    #     ]
+    # source_documents = [
+    #         f"""出处 [{inum + 1}] {os.path.split(doc.metadata['source'])[-1]}"""
+    #         for inum, doc in enumerate(resp["source_documents"])
+    # ]
+    # print(source_documents)
+
+async def test(
+    question: str = Body(..., description="Question", example="工伤保险是什么？"),
+        history: List[List[str]] = Body(
+            [],
+            description="History of previous questions and answers",
+            example=[
+                [
+                    "工伤保险是什么？",
+                    "工伤保险是指用人单位按照国家规定，为本单位的职工和用人单位的其他人员，缴纳工伤保险费，由保险机构按照国家规定的标准，给予工伤保险待遇的社会保险制度。",
+                ]
+            ],
+        ),
+):
+    # print(history)
+    return StreamingResponse(fake_streamer(question, history))
+
 
 def api_start(host, port):
     global app
@@ -433,6 +475,8 @@ def api_start(host, port):
     app.get("/", response_model=BaseResponse)(document)
 
     app.post("/chat", response_model=ChatMessage)(chat)
+    
+    app.post("/test")(test)
 
     app.post("/local_doc_qa/upload_file", response_model=BaseResponse)(upload_file)
     app.post("/local_doc_qa/upload_files", response_model=BaseResponse)(upload_files)
