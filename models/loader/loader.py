@@ -117,6 +117,7 @@ class LoaderCheckPoint:
             if torch.cuda.is_available() and self.llm_device.lower().startswith("cuda"):
                 # 根据当前设备GPU数量决定是否进行多卡部署
                 num_gpus = torch.cuda.device_count()
+                # num_gpus = 1
                 if num_gpus < 2 and self.device_map is None:
                     model = (
                         LoaderClass.from_pretrained(checkpoint,

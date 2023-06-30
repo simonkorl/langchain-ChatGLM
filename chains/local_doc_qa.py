@@ -104,6 +104,13 @@ def generate_prompt(related_docs: List[str],
     prompt = prompt_template.replace("{question}", query).replace("{context}", context)
     return prompt
 
+def generate_prompt_new(related_docs: List[str],
+                    query: str,
+                    prompt_template: str = PROMPT_TEMPLATE, ) -> str:
+    context = "\n".join(["Reference [{idx}]: {content}".format(idx=idx, content=doc.page_content) for idx, doc in enumerate(related_docs)])
+    prompt = prompt_template.replace("{question}", query).replace("{context}", context)
+    return prompt
+
 
 def search_result2docs(search_results):
     docs = []
@@ -238,6 +245,35 @@ class LocalDocQA:
             history = answer_result.history
             history[-1][0] = query
             response = {"query": query,
+                        "result": resp,
+                        "source_documents": related_docs_with_score}
+            yield response, history
+
+    def get_knowledge_based_answer_with_template(self, query, vs_path, chat_history=[], streaming: bool = STREAMING):
+        '''read template from a template.txt and then complete it with context and question'''
+        vector_store = load_vector_store(vs_path, self.embeddings)
+        vector_store.chunk_size = self.chunk_size
+        vector_store.chunk_conent = self.chunk_conent
+        vector_store.score_threshold = self.score_threshold
+        related_docs_with_score = vector_store.similarity_search_with_score(query, k=self.top_k)
+        torch_gc()
+        
+        template = ""
+        with open("template.txt", "r") as f:
+            template = f.read()
+        if len(related_docs_with_score) > 0:
+            prompt = generate_prompt_new(related_docs_with_score, query, template)
+        else:
+            prompt = query
+      
+        for answer_result in self.llm.generatorAnswer(prompt=prompt, history=chat_history,
+                                                      streaming=streaming):
+            resp = answer_result.llm_output["answer"]
+            history = answer_result.history
+            history[-1][0] = query
+            response = {"query": query,
+                        "template": template,
+                        "prompt": prompt,
                         "result": resp,
                         "source_documents": related_docs_with_score}
             yield response, history
