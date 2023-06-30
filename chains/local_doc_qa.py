@@ -106,10 +106,10 @@ def generate_prompt(related_docs: List[str],
 
 def generate_prompt_new(related_docs: List[str],
                     query: str,
-                    prompt_template: str = PROMPT_TEMPLATE, ) -> str:
+                    prompt_template: str = PROMPT_TEMPLATE, ) -> tuple[str, str]:
     context = "\n".join(["Reference [{idx}]: {content}".format(idx=idx, content=doc.page_content) for idx, doc in enumerate(related_docs)])
     prompt = prompt_template.replace("{question}", query).replace("{context}", context)
-    return prompt
+    return prompt, context
 
 
 def search_result2docs(search_results):
@@ -262,9 +262,10 @@ class LocalDocQA:
         with open("template.txt", "r") as f:
             template = f.read()
         if len(related_docs_with_score) > 0:
-            prompt = generate_prompt_new(related_docs_with_score, query, template)
+            prompt, context = generate_prompt_new(related_docs_with_score, query, template)
         else:
             prompt = query
+            context = ""
       
         for answer_result in self.llm.generatorAnswer(prompt=prompt, history=chat_history,
                                                       streaming=streaming):
@@ -275,6 +276,7 @@ class LocalDocQA:
                         "template": template,
                         "prompt": prompt,
                         "result": resp,
+                        "context": context,
                         "source_documents": related_docs_with_score}
             yield response, history
 
