@@ -176,5 +176,8 @@ pyrightconfig.json
 loader/tmp_files
 flagged/*
 
+#Local data
 data_bk/*
 results/**
+data/*
+chatGLM130B/*

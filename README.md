@@ -1,4 +1,6 @@
 # 基于本地知识库的 ChatGLM 等大语言模型应用实现
+## 当前工程
+基于[ImClumplyPanda](https://github.com/imClumsyPanda/langchain-ChatGLM)，优化了针对Docx文档的文本分级（文件名、标题、正文）匹配功能。
 
 ## 介绍
 
@@ -251,7 +253,7 @@ Web UI 可以实现如下功能：
 - [x] VUE 前端
 
 ## 项目交流群
-<img src="img/qr_code_38.jpg" alt="二维码" width="300" height="300" />
+<img src="img/qr_code_41.jpg" alt="二维码" width="300" height="300" />
 
 
 🎉 langchain-ChatGLM 项目微信交流群，如果你也对本项目感兴趣，欢迎加入群聊参与讨论交流。
