@@ -449,7 +449,61 @@ async def test(
 ):
     # print(history)
     return StreamingResponse(fake_streamer(question, history))
-
+from time import sleep
+import random
+hack_langchain = None
+hack_glm = None
+langchain_idx = 0
+glm_idx = 0
+async def hack_streamer(question, history, type):
+    ''' Use local document as input and return the output in a stream like pattern'''
+    global hack_langchain, hack_glm, langchain_idx, glm_idx
+    if hack_langchain is None:
+        hack_langchain = json.load(open("./results/gaokao_result/langchain_result_new.json"))
+    if hack_glm is None:
+        hack_glm = json.load(open("./glm_history.json"))
+    if type == 'edu':
+        if langchain_idx < len(hack_langchain):
+            doc = hack_langchain[langchain_idx]['answer']
+            while doc:
+                num = random.randint(10, 20)
+                yield doc[:num]
+                sleep(0.1)
+                doc = doc[num:]
+            langchain_idx += 1
+        else:
+            yield "edu-ai 使用次数已达上限"
+    else:
+        if glm_idx < len(hack_glm): 
+            doc = hack_glm[glm_idx]['answer']
+            while doc:
+                num = random.randint(10, 20)
+                yield doc[:num]
+                sleep(0.1)
+                doc = doc[num:]
+            glm_idx += 1
+        else:
+            yield "glm 使用次数已达上限"
+        
+async def hack(
+    question: str = Body(..., description="Question", example="工伤保险是什么？"),
+    history: List[List[str]] = Body(
+            [],
+            description="History of previous questions and answers",
+            example=[
+                [
+                    "工伤保险是什么？",
+                    "工伤保险是指用人单位按照国家规定，为本单位的职工和用人单位的其他人员，缴纳工伤保险费，由保险机构按照国家规定的标准，给予工伤保险待遇的社会保险制度。",
+                ]
+            ],
+        ),
+    type: str = Body(
+        'edu',
+        description="Use edu-ai for basic chatglm for answer"
+    )
+):
+    # print(history)
+    return StreamingResponse(hack_streamer(question, history, type))
 
 def api_start(host, port):
     global app
@@ -477,6 +531,7 @@ def api_start(host, port):
     app.post("/chat", response_model=ChatMessage)(chat)
     
     app.post("/test")(test)
+    app.post("/hack")(hack)
 
     app.post("/local_doc_qa/upload_file", response_model=BaseResponse)(upload_file)
     app.post("/local_doc_qa/upload_files", response_model=BaseResponse)(upload_files)

@@ -44,5 +44,7 @@ class GLMTester:
         with open(filename, 'w') as f:
             json.dump(self.test_history, f)
 
-# glm = GLMTester("THUDM/chatglm-6b")
+if __name__ == "__main__":
+    glm = GLMTester("THUDM/chatglm-6b")
+    print(glm.chat("环境专业就业如何？")[0])
 # glm2 = GLMTester("THUDM/chatglm2-6b")
