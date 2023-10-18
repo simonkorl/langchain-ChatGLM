@@ -254,6 +254,9 @@ class LocalDocQA:
     
 
     def get_knowledge_based_answer(self, query, vs_path, loaded_files=[], chat_history=[], streaming: bool = STREAMING):
+        '''
+        该函数针对 docx 文件的匹配进行了特定的修改，可以更好地匹配文件标题。在使用 docx 文件匹配的时候，必须传入 loaded_files 才能生效
+        '''
         vector_store = load_vector_store(vs_path, self.embeddings)
         vector_store.chunk_size = self.chunk_size
         vector_store.chunk_conent = self.chunk_conent
@@ -266,7 +269,7 @@ class LocalDocQA:
         #            loaded_files.append("data/data_docx/"+d)
         #   print("DEBUG, ", loaded_files)
             
-        if loaded_files[0].endswith(".docx"):
+        if len(loaded_files) > 0 and loaded_files[0].endswith(".docx"):
             related_docs_with_score = self.similarity_search_within_docx_files(vector_store, query, loaded_files)
         else:
             related_docs_with_score, _ = vector_store.similarity_search_with_score(query, k=self.top_k, match_docs = [])

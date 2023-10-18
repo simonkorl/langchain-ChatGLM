@@ -417,11 +417,11 @@ async def hello():
         recv_text = await websocket.send_json()
 
 async def fake_streamer(question: str, history: List[List[str]]):
-    vs_path = os.path.join("./vector_store/", "data")
+    global edu_vs_path, loaded_files
     last_print_len = 0
     import configs
     for resp, history in local_doc_qa.get_knowledge_based_answer(
-        query=question, vs_path=vs_path, chat_history=history, streaming=True
+        query=question, vs_path=edu_vs_path, loaded_files=loaded_files, chat_history=history, streaming=True
     ):
         yield resp["result"][last_print_len:]
         last_print_len = len(resp["result"])
@@ -552,8 +552,13 @@ def api_start(host, port):
         embedding_device=EMBEDDING_DEVICE,
         top_k=VECTOR_SEARCH_TOP_K,
     )
-    uvicorn.run(app, host=host, port=port)
 
+    global edu_vs_path, loaded_files
+    edu_vs_path, loaded_files = local_doc_qa.init_knowledge_vector_store(
+       "./data/data_docx" # 现在必须要使用 docx 格式的文档，否则程序出错
+    )
+
+    uvicorn.run(app, host=host, port=port)
 
 if __name__ == "__main__":
     parser.add_argument("--host", type=str, default="0.0.0.0")

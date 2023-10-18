@@ -165,6 +165,7 @@ output/*
 log/*
 .chroma
 vector_store/*
+vectorstores/*
 content/*
 api_content/*
 knowledge_base/*
