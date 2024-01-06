@@ -1,0 +1,37 @@
+# 从 Dockerfile-cuda 改造而来
+# 注意：这个 Dockerfile 生成的 image 可能无法直接使用
+# 请根据这个文本最后的提示进行修改后再使用
+# 根据需要修改下面的镜像类型
+FROM  nvidia/cuda:12.2.0-runtime-ubuntu22.04
+LABEL MAINTAINER="chatGLM"
+
+# 此处复制的是所有的资源
+# 如果有明确的不需要复制的信息，可以使用 .dockerignore 进行忽略
+# 也可以使用 COPY 命令直接指定需要复制的东西
+# 可以参考 Dockerfile 中的写法
+COPY . /chatGLM/
+
+WORKDIR /chatGLM
+
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo "Asia/Shanghai" > /etc/timezone
+# 换源，否则下载太慢
+RUN sed -i s@/archive.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list && apt-get clean
+RUN apt-get update -y && apt-get install python3 python3-pip curl libgl1 libglib2.0-0 -y  && apt-get clean
+# 换源，否则可能 get-pip.py 没有办法下载
+# RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3 get-pip.py 
+# 这里我们把 get-pip.py 直接下载下来使用
+RUN python3 get-pip.py
+
+RUN pip3 install -r requirements.txt -i https://pypi.mirrors.ustc.edu.cn/simple/ && rm -rf `pip3 cache dir`
+
+# 去除最后的命令，我们可以使用 docker compose 指示其运行什么应用
+# CMD ["python3","-u", "webui.py"]
+
+# 构建完这个 image 之后需要考虑如何使用 docker compose 将其运行起来
+# 其中模型的加载和数据的加载是最需要考虑的问题
+# 在 docker-compose.yml 中，目前使用 volumn 将模型和数据按照如下方法进行映射
+# ./models:/chatGLM/local_models
+# 这是因为 chatglm 可能会访问 huggingface 来获得模型，但是通常访问不到，所以需要事先下载模型
+# 然后在代码中让代码从本地加载模型
+# /home/ubuntu/project/langchain-ChatGLM/data/:/chatGLM/data
+# 这个是从本地挂载数据的命令，没有什么特殊的
